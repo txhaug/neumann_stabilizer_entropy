@@ -17,8 +17,14 @@ then switches to direct sampling from marginals once enough qubits have been sam
 This way, scaling of O((2\sqrt{2})^N) is achieved, tested up to 24 qubits.
 For statevector simulation, best previous best method of O(8^N) which was limited to ~15 qubits.
 
-For installtion, requires older version of qutip, namely <=4.7.5, install via "pip install qutip==4.7.5"
 
+NOTE: Requires older version of qutip, namely <=4.7.5, which has dependencies on older versions of numyp and scipy.
+To install, make clean python 3.11 environment and install packages as:
+- pip install numpy==1.26.4
+- pip install scipy==1.12.0
+- pip install qutip==4.7.5
+
+- 
 @author: Tobias Haug, 
 Technology Innovation Institute, UAE
 tobias.haug@u.nus.edu
