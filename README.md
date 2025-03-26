@@ -1,6 +1,6 @@
-# Universal dynamics of stabilizer entropy
+# Statevector algorithm to perform Bell/Pauli sampling, compute SRE and magic capacity
 
-Program to compute von Neumann Stabilizer entropy for arbitrary states.
+Statevector algorithm to perform Bell/Pauli sampling, compute SRE and magic capacity for arbitrary states.
 Has been tested for up to 24 qubits.
 
 Companion code to "Efficient mutual magic, magic capacity, and magic witnesses", arXiv:xx by Tobias Haug and Poetri Sonya Tarabunga
