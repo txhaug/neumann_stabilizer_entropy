@@ -1,15 +1,19 @@
 # Universal dynamics of stabilizer entropy
 
-Program to compute von Neumann Stabilizer entropy for arbitrary states
-Tested up to 24 qubits
-Works by using Bell sampling to sample from Pauli spectrum P(\sigma)=2^-N <psi|\sigma|psi>^2
+Program to compute von Neumann Stabilizer entropy for arbitrary states.
+Has been tested for up to 24 qubits.
+
+Companion code to "Efficient mutual magic, magic capacity, and magic witnesses", arXiv:xx by Tobias Haug and Poetri Sonya Tarabunga
+
+
+Works by using Bell sampling to sample from Pauli spectrum P(\sigma)=2^-N <psi|\sigma|psi>^2.
 Bell sampling is done by sampling in computational basis from U_bell^{\otimes N} |psi^*>\otimes|psi>
 which is equivalent to sampling from P(\sigma), where U_bell is the Bell transformation.
-Use this to estimate von Neumann SE -\sum_\sigma P(\sigma) log(<psi|\sigma|psi>^2)
+von Neumann SE can be estimated as -\sum_\sigma P(\sigma) log(<psi|\sigma|psi>^2)
 
-Main problem is that |psi^*>\otimes|psi> is too large to be stored in memory
-Thus, first we use Feynman like approach where we store only |psi> and describe sampling trajectory
-of tensor product as a superposition (see manuscript for details)
+Main problem is that |psi^*>\otimes|psi> is too large to be stored in memory.
+Thus, first we use Feynman like approach where we store only |psi> and describe sampling trajectory.
+of tensor product as a superposition (see manuscript for details).
 
 This program uses this Feynmann-like trajectory approach to sample the first half of the qubits, 
 then switches to direct sampling from marginals once enough qubits have been sampled.
