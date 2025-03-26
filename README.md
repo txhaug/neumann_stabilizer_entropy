@@ -18,8 +18,8 @@ of tensor product as a superposition (see manuscript for details).
 This program uses this Feynmann-like trajectory approach to sample the first half of the qubits, 
 then switches to direct sampling from marginals once enough qubits have been sampled.
 
-This way, scaling of O((2\sqrt{2})^N) is achieved, tested up to 24 qubits.
-For statevector simulation, best previous best method of O(8^N) which was limited to ~15 qubits.
+This way, scaling in time of O((\sqrt{8})^N) is achieved with O(2^n) memory, tested up to 24 qubits.
+For direct statevector simulation, previous method uses O(8^N) time and O(4^n) memory which was limited to ~15 qubits.
 
 
 NOTE: Requires older version of qutip, namely <=4.7.5, which has dependencies on older versions of numyp and scipy.
