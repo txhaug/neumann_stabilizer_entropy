@@ -30,7 +30,7 @@ To install, make clean python 3.11 environment and install packages as:
 - pip install scipy==1.12.0
 - pip install qutip==4.7.5
 
-- 
+  
 @author: Tobias Haug, 
 Technology Innovation Institute, UAE
 tobias.haug@u.nus.edu
