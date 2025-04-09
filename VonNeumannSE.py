@@ -2,12 +2,17 @@
 """
 Created on Tue Jun  7 15:36:54 2022
 
-Program to compute von Neumann Stabilizer entropy for arbitrary states
+Program to perform Pauli sampling to compute von Neumann Stabilizer entropy and magic capacity for arbitrary states
 Tested up to 24 qubits
-Works by using Bell sampling to sample from Pauli spectrum P(\sigma)=2^-N <psi|\sigma|psi>^2
-Bell sampling is done by sampling in computational basis from U_bell^{\otimes N} |psi^*>\otimes|psi>
+
+Companion code for "Efficient mutual magic and magic capacity with matrix product states" 
+by Poetri Sonya Tarabunga and Tobias Haug
+
+Works by using Pauli sampling to sample from Pauli spectrum P(\sigma)=2^-N <psi|\sigma|psi>^2
+Pauli sampling is done by sampling in computational basis from U_bell^{\otimes N} |psi^*>\otimes|psi>
 which is equivalent to sampling from P(\sigma), where U_bell is the Bell transformation.
 Use this to estimate von Neumann SE -\sum_\sigma P(\sigma) log(<psi|\sigma|psi>^2)
+Can also sample as a Bell measurement from U_bell^{\otimes N} |psi>\otimes|psi>
 
 Main problem is that |psi^*>\otimes|psi> is too large to be stored in memory
 Thus, first we use Feynman like approach where we store only |psi> and describe sampling trajectory
@@ -34,7 +39,7 @@ n_qubits=6 ##number of qubits
 ##type of state to sample,
 # 0: 0 state, 
 #1: N-qubit T-state 
-#2: haar random (state creation works only up to 10 qubits)
+#2: haar random
 # 3: GUE evolution
 # 4: random Clifford +T gates
 model=1
@@ -49,6 +54,7 @@ layers=100 ##number of layers for model=4
 max_qubit=min((n_qubits-4)//2,12) 
 
 
+do_bell_sampling=False ##whether to sample from Pauli distribution or Bell distribution
 
 
 import qutip as qt
@@ -170,7 +176,11 @@ def renyi_entropy_fast(state,conversion_matrix_mod_add_index,conversion_matrix_b
 
         renyi_fast_list.append(renyi_fast)
         
-    return renyi_fast_list
+    magic_capacity=np.sum(prob_list*(-np.log(prob_list)-subtract_log)**2)-renyi_fast**2
+            
+        
+        
+    return renyi_fast_list,magic_capacity
 
 
 def project_first_qubit(state):
@@ -219,6 +229,7 @@ def get_overlaps(state,max_qubit):
     Input:
         state 
         max_qubit, which is maximal number of projected qubits to compute overlaps for
+
     
     Output:
         overlaps_list: Overlaps computed
@@ -275,7 +286,7 @@ def get_overlaps(state,max_qubit):
             ##compute overlaps between projected states
             for q in range(len(states_projected)):
                 overlaps[:,q]=np.sqrt(probs_projected*probs_projected[q])*np.dot(states_array,np.conj(states_array[q]))
-    
+                
             overlaps_list.append(overlaps)
 
 
@@ -284,10 +295,13 @@ def get_overlaps(state,max_qubit):
 
 
 
-def sample_von_neumann(state,max_qubit,rng,overlaps_list,probs_projected,states_projected):
+def sample_Pauli(state,max_qubit,rng,overlaps_list,probs_projected,states_projected,do_bell_sampling=False):
     """
-    Compute von Neumann Stabilizer entropy by Bell sampling
-    Main issue is that Bell sampling requires too large memory to be done directly
+    Performs Pauli sampling P\sim <psi|P|psi>^2
+    
+    Set do_bell_sampling=True to do Bell sampling instead which is P\sim <psi^*|P|psi>^2
+    
+    Main issue is that Pauli sampling requires too large memory to be done directly
     
     Thus, first performs Feynman like trajectory sampling which requires less memory
     then after projecting sufficient qubits
@@ -327,7 +341,10 @@ def sample_von_neumann(state,max_qubit,rng,overlaps_list,probs_projected,states_
 
             if(len(bell_description_factor)==1):
                 ##directly construct state if no trajectories have been done
-                tensor_state=qt.tensor([state.conj(),state])
+                if(do_bell_sampling==False):##Pauli sampling
+                    tensor_state=qt.tensor([state.conj(),state])
+                else: ##Bell sampling
+                    tensor_state=qt.tensor([state,state])
             else:
                 ##construct full state from trajectories
                 index_states=(2**np.arange(order))[::-1]
@@ -337,9 +354,10 @@ def sample_von_neumann(state,max_qubit,rng,overlaps_list,probs_projected,states_
                     #print(k)
                     index1=sum(bell_description1[k]*index_states)
                     index2=sum(bell_description2[k]*index_states)
-    
-                    tensor_state+=bell_description_factor[k]*np.sqrt(probs_projected[index1])*np.sqrt(probs_projected[index2])*qt.tensor([states_projected[index1].conj(),states_projected[index2]])
-    
+                    if(do_bell_sampling==False):##Pauli sampling
+                        tensor_state+=bell_description_factor[k]*np.sqrt(probs_projected[index1])*np.sqrt(probs_projected[index2])*qt.tensor([states_projected[index1].conj(),states_projected[index2]])
+                    else: ##Bell sampling
+                        tensor_state+=bell_description_factor[k]*np.sqrt(probs_projected[index1])*np.sqrt(probs_projected[index2])*qt.tensor([states_projected[index1],states_projected[index2]])
 
             ##marginal sampling from full state
             
@@ -447,10 +465,13 @@ def sample_von_neumann(state,max_qubit,rng,overlaps_list,probs_projected,states_
                 ##get probability by going through all superposition states
                 new_bell_description_factor=np.array(new_bell_description_factor)
                 for k in range(len(new_bell_description_factor)):
-                    bell_prob+=np.sum(new_bell_description_factor[k]*new_bell_description_factor*np.conjugate(overlaps[bell_state_index1[k],bell_state_index1])*overlaps[bell_state_index2[k],bell_state_index2])
-            
+                    if(do_bell_sampling==False):##Pauli sampling
+                        bell_prob+=np.sum(new_bell_description_factor[k]*new_bell_description_factor*np.conjugate(overlaps[bell_state_index1[k],bell_state_index1])*overlaps[bell_state_index2[k],bell_state_index2])
+                    else:
+                        bell_prob+=np.sum(new_bell_description_factor[k]*new_bell_description_factor*overlaps[bell_state_index1[k],bell_state_index1]*overlaps[bell_state_index2[k],bell_state_index2])
 
-            
+
+                #print(bell_prob)
                 bell_prob=np.real(bell_prob)
                 sum_bell_prob+=bell_prob ##keep track of probabilities from previous outcomes
 
@@ -481,12 +502,12 @@ def sample_von_neumann(state,max_qubit,rng,overlaps_list,probs_projected,states_
     map_outcome_pauli=np.array([0,1,3,2],dtype=int) ##map bell outcome to pauli operator
     
     ##expectation value of sampled pauli
-    expect_bell=2**(n_qubits)*prod_probs
+    expect_pauli_sq=2**(n_qubits)*prod_probs ## is expectation value of pauli **2
     
     ##collect paulis sampled
     pauli_outcome=[map_outcome_pauli[bell_outcome[i]] for i in range(n_qubits)]
 
-    return expect_bell,pauli_outcome
+    return expect_pauli_sq,pauli_outcome
 
 
 def prod(factors):
@@ -588,11 +609,14 @@ elif(model==1):
     ##T state
     state=qt.tensor([qt.basis(2,0)+np.exp(1j*np.pi/4)*qt.basis(2,1) for i in range(n_qubits)])
 elif(model==2):
-    ##haar random state, only works up to 10 qubits 
-    ##qutip creates haar random unitary first, which can be stored only up to 10 qubits 
+    ##haar random state
     
     dims_vec=[[2]*(n_qubits),[1]*(n_qubits)]
-    state=qt.rand_ket_haar(N=2**(n_qubits),dims=dims_vec)
+    # state=qt.rand_ket_haar(N=2**(n_qubits),dims=dims_vec)
+    
+    state=qt.Qobj(standard_normal_complex(2**n_qubits),dims=dims_vec)
+    state=state/state.norm()
+    
 elif(model==3): ##GUE
     GUE_matrix=2**(-n_qubits/2)*qt.Qobj(GUE([2**n_qubits,2**n_qubits]),dims=dims_mat) #this nearly normalizes GUE matrix according to psi H psi^2
     GUE_matrix=GUE_matrix/np.sqrt((GUE_matrix.dag()*GUE_matrix).tr()/(2**(n_qubits)+1)) ##+1 factor comes from haar random integration
@@ -610,7 +634,7 @@ state=state/state.norm()
 
 print("start")
 
-expect_bell_list=[]
+expect_pauli_sq_list=[]
 
 print("Getting overlaps")
 ##precompute overlaps needed for Von Neumann sampling
@@ -626,19 +650,27 @@ for step in range(n_sample):
       if((step+1)%percent==0):
         print("Done",step//percent*10,"%")
 
-    expect_bell,pauli_outcome=sample_von_neumann(state,max_qubit,rng,overlaps_list,probs_projected,states_projected)
-    expect_bell_list.append(expect_bell)
+    expect_pauli_sq,pauli_outcome=sample_Pauli(state,max_qubit,rng,overlaps_list,probs_projected,states_projected,do_bell_sampling=do_bell_sampling)
+    expect_pauli_sq_list.append(expect_pauli_sq)
 
     
 
 print("Finished sampling")
-expect_bell_list=np.array(expect_bell_list)
+expect_pauli_sq_list=np.array(expect_pauli_sq_list)
 
-##sampling estimation of SE and standard deviation
-vn_sample=np.mean(-np.log(2**(-n_qubits)*expect_bell_list)-n_qubits*np.log(2))/n_qubits
-vn_sample_std=np.std(-np.log(2**(-n_qubits)*expect_bell_list)-n_qubits*np.log(2))/np.sqrt(n_sample)/n_qubits
+##sampling estimation of von neumann SE density
+vn_sample=np.mean(-np.log(2**(-n_qubits)*expect_pauli_sq_list)-n_qubits*np.log(2))/n_qubits
+
+##magic capacity
+magic_capacity=np.var(-np.log(2**(-n_qubits)*expect_pauli_sq_list)-n_qubits*np.log(2))
+vn_sample_std=np.sqrt(magic_capacity)/np.sqrt(n_sample)/n_qubits ##standard deviation of von neummann SRE density estimator
+
+
+print("Magic capacity",magic_capacity)
 
 print("Von Neumann SE density",vn_sample,"+-",vn_sample_std)
+
+
 
 print("Sampling time",time.time()-sampling_time)
 
@@ -646,17 +678,26 @@ if(n_qubits<=8): ##test against exact SE, slow method
     exact_slow_time=time.time()
     ##get all pauli expectation values
     pauli_op_list,pauli_list=get_all_paulis_N(n_qubits)
-    pauli_sq_expect=np.array([qt.expect(pauli_op_list[k],state)**2 for k in range(len(pauli_op_list))])
+    pauli_sq_expect_exact=np.array([qt.expect(pauli_op_list[k],state)**2 for k in range(len(pauli_op_list))])
     
-    pauli_sq_expect_nonzero=pauli_sq_expect[pauli_sq_expect>0]
+    pauli_sq_expect_nonzero=pauli_sq_expect_exact[pauli_sq_expect_exact>0]
     vn_exact=-2**-n_qubits*np.sum(pauli_sq_expect_nonzero*np.log(pauli_sq_expect_nonzero))/n_qubits
     
     print("Von Neumann SE density exact",vn_exact)
     
-    ##check that the last sampled pauli had correct probability
     index_pauli=np.argmax(np.all(pauli_list==pauli_outcome,axis=1))
-    print("Compare one sampled outcome with exact value",pauli_sq_expect[index_pauli],expect_bell,pauli_outcome)
-    
+    if(do_bell_sampling==False):
+        ##check that the last sampled pauli had correct probability
+        ##pauli sampling
+        ##P\sim <psi|P|psi>^2
+        print("Compare one sampled outcome with exact value",pauli_sq_expect_exact[index_pauli],expect_pauli_sq,pauli_outcome)
+    else:
+        ##bell sampling
+        ##P\sim <psi^*|P|psi>^2
+        bell_prob_exact=np.abs((state.dag().conj()*pauli_op_list[index_pauli]*state).tr())**2
+        print("Compare one Bell sampled outcome with exact value",bell_prob_exact,expect_pauli_sq,pauli_outcome)
+
+        
     print("Exact slow time",time.time()-exact_slow_time)
 
 ##creates basis needed to compute stabilizer entropy for up to 13 qubits
@@ -673,7 +714,8 @@ if(n_qubits<=13):
     print("Finish magic bases")
 
     ##compute stabilizer entropy, any alpha can be chosen
-    renyi_fast_list=renyi_entropy_fast(state,conversion_matrix_mod_add_index,conversion_matrix_binary_prod,alpha=[1])
+    renyi_fast_list,magic_capacity_exact=renyi_entropy_fast(state,conversion_matrix_mod_add_index,conversion_matrix_binary_prod,alpha=[1])
     print("SE density exact with fast method",np.array(renyi_fast_list)/n_qubits)
+    print("magic capacity with exact method",magic_capacity_exact)
     
     print("Exact fast time",time.time()-exact_fast_time)
