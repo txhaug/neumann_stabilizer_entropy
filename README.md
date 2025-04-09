@@ -3,13 +3,15 @@
 Statevector algorithm to perform Bell/Pauli sampling, compute SRE and magic capacity for arbitrary states.
 Has been tested for up to 24 qubits.
 
-Companion code to "Efficient mutual magic, magic capacity, and magic witnesses", arXiv:xx by Tobias Haug and Poetri Sonya Tarabunga
+Companion code to "Efficient mutual magic, magic capacity, and magic witnesses", 
+arXiv:xxxxx by Poetri Sonya Tarabunga and Tobias Haug
 
 
-Works by using Bell sampling to sample from Pauli spectrum P(\sigma)=2^-N <psi|\sigma|psi>^2.
-Bell sampling is done by sampling in computational basis from U_bell^{\otimes N} |psi^*>\otimes|psi>
+Works by using Pauli sampling to sample from Pauli spectrum P(\sigma)=2^-N <psi|\sigma|psi>^2.
+Pauli sampling is done by sampling in computational basis from U_bell^{\otimes N} |psi^*>\otimes|psi>
 which is equivalent to sampling from P(\sigma), where U_bell is the Bell transformation.
 von Neumann SE can be estimated as -\sum_\sigma P(\sigma) log(<psi|\sigma|psi>^2)
+Can also sample as a Bell measurement from U_bell^{\otimes N} |psi>\otimes|psi>
 
 Main problem is that |psi^*>\otimes|psi> is too large to be stored in memory.
 Thus, first we use Feynman like approach where we store only |psi> and describe sampling trajectory.
