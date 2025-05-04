@@ -3,8 +3,8 @@
 Statevector algorithm to perform Bell/Pauli sampling, compute SRE and magic capacity for arbitrary states.
 Has been tested for up to 24 qubits.
 
-Companion code to "Efficient mutual magic, magic capacity, and magic witnesses", 
-arXiv:xxxxx by Poetri Sonya Tarabunga and Tobias Haug
+Companion code to "Efficient mutual magic and magic capacity with matrix product states", 
+arXiv:2504.07230 by Poetri Sonya Tarabunga and Tobias Haug
 
 
 Works by using Pauli sampling to sample from Pauli spectrum P(\sigma)=2^-N <psi|\sigma|psi>^2.
